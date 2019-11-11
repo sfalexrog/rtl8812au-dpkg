@@ -1,4 +1,4 @@
-rtl8812au-dkms (5.2.20-0+svp1) buster; urgency=medium
+realtek-rtl88xxau-dkms (5.2.20-0+svp1) buster; urgency=medium
 
   * Initial package
 
