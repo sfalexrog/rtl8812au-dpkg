@@ -1,78 +1,28 @@
 language: c
 compiler: gcc
-sudo: required
-dist: xenial
+os: linux
+dist: bionic
+arch: arm64
+services:
+  - docker
 
-before_install:
-  - export ALL_DEB=$(wget --quiet -O - ${KERNEL_URL}v${KVER}/ | grep -o 'href=".*"' | grep -m1 all | cut -d '"' -f 2)
-  - export KVER_BUILD=$(echo $ALL_DEB | cut -d '_' -f 1 | cut -c15-)
-  - wget ${KERNEL_URL}v${KVER}/$(wget --quiet -O - ${KERNEL_URL}v${KVER}/ | grep -o 'href=".*"' | grep headers | grep generic | grep -m1 amd64 | cut -d '"' -f 2)
-  - wget ${KERNEL_URL}v${KVER}/$ALL_DEB
-  - sudo dpkg -i *.deb
-
-script:
-  - make CC=$COMPILER KVER=$KVER_BUILD-generic
 env:
   global:
-    - KERNEL_URL=http://kernel.ubuntu.com/~kernel-ppa/mainline/
+    - DOCKER=sfalexrog/raspbian:buster-2019-09-30
+  jobs:
+    - KVER=4.19.75+
+    - KVER=4.19.75-v7+
+    - KVER=4.19.75-v7l+
 
-matrix:
-  include:
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - sourceline: 'ppa:ondrej/nginx-mainline'
-          packages:
-            - libssl1.1
-      env: COMPILER=gcc-5 KVER=5.2-rc1
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:ondrej/nginx-mainline'
-          packages:
-            - gcc-6
-            - libssl1.1
-      env: COMPILER=gcc-6 KVER=5.2-rc1
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:ondrej/nginx-mainline'
-          packages:
-            - gcc-7
-            - libssl1.1
-      env: COMPILER=gcc-7 KVER=5.2-rc1
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - sourceline: 'ppa:ondrej/nginx-mainline'
-          packages:
-            - libssl1.1
-      env: COMPILER=gcc-5 KVER=4.19.45
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:ondrej/nginx-mainline'
-          packages:
-            - gcc-6
-            - libssl1.1
-      env: COMPILER=gcc-6 KVER=4.19.45
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:ondrej/nginx-mainline'
-          packages:
-            - gcc-7
-            - libssl1.1
-      env: COMPILER=gcc-7 KVER=4.19.45
-    - compiler: gcc
-      env: COMPILER=gcc-5 KVER=3.14.79
+before_script:
+  - mkdir -p ${HOME}/output
+  - sudo docker pull ${DOCKER}
+
+script:
+  - sudo docker run --rm -v $(pwd):/realtek-rtl88xxau-dkms-5.2.20 -v ${HOME}/output:/output --env KVER=${KVER} ${DOCKER} /bin/bash -c '
+      apt update && apt install bc build-essential debhelper dkms fakeroot &&
+      cd realtek-rtl88xxau-dkms-5.2.20 && dpkg-buildpackage && cd / &&
+      apt install ./*.deb &&
+      dkms mkbmdeb realtek-rtl88xxau/5.2.20 -k ${KVER} &&
+      cp /var/lib/dkms/realtek-rtl88xxau/5.2.20/bmdeb/*.deb /output'
+  - find ${HOME}/output -iname '*.deb' -exec dpkg -I {} \;
