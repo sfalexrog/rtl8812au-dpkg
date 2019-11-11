@@ -29,10 +29,15 @@ script:
       cp /var/lib/dkms/realtek-rtl88xxau/5.2.20/bmdeb/*.deb /output'
   - find ${HOME}/output -iname '*.deb' -exec dpkg -I {} \;
 
+before_deploy:
+  - mkdir output
+  - cp ${HOME}/*.deb output/
+  - find output -iname '*.deb' -exec dpkg -I {} \;
+
 deploy:
   provider: releases
   api_key: ${GITHUB_OAUTH_TOKEN}
   skip_cleanup: true
-  file: ${HOME}/output/*.deb
+  file: output/*.deb
   on:
     tags: true
