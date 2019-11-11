@@ -21,7 +21,8 @@ before_script:
 script:
   - sudo docker run --rm -v $(pwd):/realtek-rtl88xxau-dkms-5.2.20 -v ${HOME}/output:/output --env KVER=${KVER} ${DOCKER} /bin/bash -c '
       apt update && apt install -y bc build-essential debhelper dkms fakeroot &&
-      cd realtek-rtl88xxau-dkms-5.2.20 && dpkg-buildpackage && cd / &&
+      cd realtek-rtl88xxau-dkms-5.2.20 && dpkg-buildpackage &&
+      cp ci/rpi-control /etc/dkms/template-dkms-mkbmdeb/debian/control && cd / &&
       apt install ./*.deb &&
       dkms mkbmdeb realtek-rtl88xxau/5.2.20 -k ${KVER} &&
       cp /var/lib/dkms/realtek-rtl88xxau/5.2.20/bmdeb/*.deb /output'
